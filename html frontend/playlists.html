@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoodLift - Your Playlists</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-primary {
+            background: linear-gradient(135deg, #FF9D6C 0%, #FF6B6B 100%);
+        }
+        .gradient-secondary {
+            background: linear-gradient(135deg, #6B8DE3 0%, #7C5CEF 100%);
+        }
+        .gradient-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #45B649 100%);
+        }
+        .blob-shape {
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+        }
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        .tab-active {
+            border-bottom: 3px solid #FF6B6B;
+            color: #FF6B6B;
+        }
+        .tab {
+            transition: all 0.3s ease;
+        }
+        .tab:hover:not(.tab-active) {
+            border-bottom: 3px solid #FFD1D1;
+            color: #FF9D6C;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg fixed w-full z-50">
+        <div class="container mx-auto px-6 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <span class="text-2xl font-bold text-gray-800">Mood<span class="text-pink-500">Lift</span></span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-gray-600 hover:text-pink-500 transition-colors">Home</a>
+                    <a href="record.html" class="text-gray-600 hover:text-pink-500 transition-colors">Record</a>
+                    <a href="playlists.html" class="text-gray-600 hover:text-pink-500 transition-colors font-medium text-pink-500">Playlists</a>
+                    <a href="journal.html" class="text-gray-600 hover:text-pink-500 transition-colors">Journal</a>
+                </div>
+                <div id="userSection" class="hidden items-center space-x-4">
+                    <span id="userName" class="text-gray-600"></span>
+                    <button onclick="logout()" class="bg-pink-500 text-white px-4 py-2 rounded-lg hover:bg-pink-600 transition-colors">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Auth Redirect Message -->
+    <div id="authRedirect" class="min-h-screen flex items-center justify-center px-6">
+        <div class="text-center max-w-md mx-auto">
+            <div class="gradient-primary w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-lock text-white text-3xl"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">Authentication Required</h2>
+            <p class="text-gray-600 mb-8">Please sign in to access your playlists.</p>
+            <a href="index.html" class="gradient-primary text-white px-6 py-3 rounded-full inline-block hover:opacity-90 transition-opacity">
+                Sign In
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="hidden pt-24 pb-12">
+        <div class="container mx-auto px-6">
+            <div class="max-w-5xl mx-auto">
+                <div class="text-center mb-10">
+                    <h1 class="text-4xl font-bold text-gray-800 mb-4">Your Music Collection</h1>
+                    <p class="text-xl text-gray-600">Discover and manage playlists tailored to your emotional needs</p>
+                </div>
+                
+                <!-- Tabs -->
+                <div class="flex justify-center mb-10 border-b">
+                    <button id="favoriteTab" onclick="showTab('favorites')" class="tab tab-active px-6 py-4 text-lg font-medium">
+                        My Favorites
+                    </button>
+                    <button id="recommendedTab" onclick="showTab('recommended')" class="tab px-6 py-4 text-lg font-medium text-gray-600">
+                        Recommended
+                    </button>
+                    <button id="moodTab" onclick="showTab('mood')" class="tab px-6 py-4 text-lg font-medium text-gray-600">
+                        By Mood
+                    </button>
+                </div>
+                
+                <!-- Favorites Tab Content -->
+                <div id="favoritesContent" class="tab-content">
+                    <div id="emptyFavorites" class="text-center py-10 hidden">
+                        <div class="gradient-secondary w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 opacity-70">
+                            <i class="far fa-heart text-white text-3xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-4">No Favorites Yet</h3>
+                        <p class="text-gray-600 mb-6">Start adding playlists to your favorites when recording your mood.</p>
+                        <a href="record.html" class="gradient-primary text-white px-6 py-3 rounded-full inline-block hover:opacity-90 transition-opacity">
+                            Record Your Voice
+                        </a>
+                    </div>
+                    
+                    <div id="favoritesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <!-- Favorites will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Recommended Tab Content -->
+                <div id="recommendedContent" class="tab-content hidden">
+                    <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-6">Recommended For You</h3>
+                        <p class="text-gray-600 mb-6">Based on your recent emotional patterns, we think you'll enjoy these playlists:</p>
+                        
+                        <div id="recommendedList" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Recommended playlists will be loaded here -->
+                            <div class="skeleton-loader bg-gray-200 animate-pulse h-40 rounded-lg"></div>
+                            <div class="skeleton-loader bg-gray-200 animate-pulse h-40 rounded-lg"></div>
+                            <div class="skeleton-loader bg-gray-200 animate-pulse h-40 rounded-lg"></div>
+                            <div class="skeleton-loader bg-gray-200 animate-pulse h-40 rounded-lg"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- By Mood Tab Content -->
+                <div id="moodContent" class="tab-content hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Mood categories -->
+                        <div class="card-hover bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer" onclick="showMoodPlaylists('Happy')">
+                            <div class="h-32 gradient-success flex items-center justify-center">
+                                <i class="fas fa-smile text-white text-5xl"></i>
+                            </div>
+                            <div class="p-6">
+                                <h3 class="text-2xl font-bold text-gray-800 mb-2">Happy</h3>
+                                <p class="text-gray-600">Upbeat and energetic music to enhance your positive mood</p>
+                            </div>
+                        </div>
+                        
+                        <div class="card-hover bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer" onclick="showMoodPlaylists('Calm')">
+                            <div class="h-32 gradient-secondary flex items-center justify-center">
+                                <i class="fas fa-cloud text-white text-5xl"></i>
+                            </div>
+                            <div class="p-6">
+                                <h3 class="text-2xl font-bold text-gray-800 mb-2">Calm</h3>
+                                <p class="text-gray-600">Soothing melodies to help you relax and de-stress</p>
+                            </div>
+                        </div>
+                        
+                        <div class="card-hover bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer" onclick="showMoodPlaylists('Sad')">
+                            <div class="h-32" style="background: linear-gradient(135deg, #7F8C8D 0%, #566573 100%);">
+                                <div class="h-full flex items-center justify-center">
+                                    <i class="fas fa-cloud-rain text-white text-5xl"></i>
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                <h3 class="text-2xl font-bold text-gray-800 mb-2">Sad</h3>
+                                <p class="text-gray-600">Comforting songs to accompany you through difficult emotions</p>
+                            </div>
+                        </div>
+                        
+                        <div class="card-hover bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer" onclick="showMoodPlaylists('Energetic')">
+                            <div class="h-32 gradient-primary flex items-center justify-center">
+                                <i class="fas fa-bolt text-white text-5xl"></i>
+                            </div>
+                            <div class="p-6">
+                                <h3 class="text-2xl font-bold text-gray-800 mb-2">Energetic</h3>
+                                <p class="text-gray-600">High-tempo tracks to boost your energy and motivation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mood-Specific Playlists (Initially Hidden) -->
+                <div id="moodPlaylistsSection" class="hidden mt-8">
+                    <button onclick="backToMoods()" class="flex items-center text-gray-600 hover:text-pink-500 mb-6">
+                        <i class="fas fa-arrow-left mr-2"></i> Back to moods
+                    </button>
+                    
+                    <h3 id="moodTitle" class="text-2xl font-bold text-gray-800 mb-6">Playlists for <span>Mood</span></h3>
+                    
+                    <div id="moodPlaylistsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <!-- Mood-specific playlists will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Highlight Section -->
+    <section class="container mx-auto px-6 py-12 mt-12">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-3xl font-bold text-gray-800 mb-12 text-center">Music For Every Mood</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="aspect-w-16 aspect-h-9 gradient-primary flex items-center justify-center">
+                        <i class="fas fa-chart-line text-white text-5xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-4">Track Your Progress</h3>
+                        <p class="text-gray-600 mb-4">MoodLift remembers your emotional patterns and recommends music that has positively impacted your mood in the past.</p>
+                        <a href="journal.html" class="text-pink-500 hover:text-pink-600 font-medium inline-flex items-center">
+                            View your journal
+                            <i class="fas fa-arrow-right ml-2"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="aspect-w-16 aspect-h-9 gradient-secondary flex items-center justify-center">
+                        <i class="fas fa-sliders-h text-white text-5xl"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-4">Personalized Experience</h3>
+                        <p class="text-gray-600 mb-4">The more you use MoodLift, the better it gets at finding the perfect music to match or improve your emotional state.</p>
+                        <a href="record.html" class="text-pink-500 hover:text-pink-600 font-medium inline-flex items-center">
+                            Record a new sample
+                            <i class="fas fa-arrow-right ml-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Auth Checking
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem("token");
+            const username = localStorage.getItem("username");
+            
+            if (token && username) {
+                document.getElementById('authRedirect').classList.add('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+                document.getElementById('userSection').classList.remove('hidden');
+                document.getElementById('userName').textContent = username;
+                
+                // Load favorites
+                loadFavorites();
+                
+                // Load recommended playlists with a small delay to simulate API call
+                setTimeout(loadRecommendedPlaylists, 1500);
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem("token");
+            localStorage.removeItem("username");
+            window.location.href = "index.html";
+        }
+        
+        // Tab Functionality
+        function showTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.add('hidden'));
+            
+            // Reset all tab buttons
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('tab-active');
+                tab.classList.add('text-gray-600');
+            });
+            
+            // Show selected tab content and activate tab button
+            document.getElementById(`${tabName}Content`).classList.remove('hidden');
+            document.getElementById(`${tabName}Tab`).classList.add('tab-active');
+            document.getElementById(`${tabName}Tab`).classList.remove('text-gray-600');
+            
+            // Hide mood-specific playlists when switching tabs
+            document.getElementById('moodPlaylistsSection').classList.add('hidden');
+        }
+        
+        // Favorites Management
+        function loadFavorites() {
+            const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+            const favoritesList = document.getElementById('favoritesList');
+            const emptyFavorites = document.getElementById('emptyFavorites');
+            
+            if (favorites.length === 0) {
+                emptyFavorites.classList.remove('hidden');
+                favoritesList.classList.add('hidden');
+                return;
+            }
+            
+            emptyFavorites.classList.add('hidden');
+            favoritesList.classList.remove('hidden');
+            favoritesList.innerHTML = '';
+            
+            favorites.forEach((favorite, index) => {
+                const card = document.createElement('div');
+                card.className = 'card-hover bg-white rounded-xl shadow-lg overflow-hidden';
+                card.innerHTML = `
+                    <div class="relative">
+                        <div class="aspect-w-16 aspect-h-9 gradient-secondary"></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <i class="fas fa-music text-white text-4xl"></i>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h4 class="text-xl font-semibold text-gray-800 mb-4">${favorite.name || 'Playlist ' + (index + 1)}</h4>
+                        <div class="flex justify-between items-center">
+                            <a href="${favorite.url}" target="_blank" 
+                               class="gradient-primary text-white px-6 py-2 rounded-full hover:opacity-90 transition-opacity inline-flex items-center">
+                                <i class="fab fa-spotify mr-2"></i>
+                                Play on Spotify
+                            </a>
+                            <button onclick="removeFromFavorites(${index})" 
+                                    class="text-pink-500 hover:text-gray-600 transition-colors">
+                                <i class="fas fa-heart text-xl"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                favoritesList.appendChild(card);
+            });
+        }
+        
+        function removeFromFavorites(index) {
+            const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+            
+            if (confirm('Remove this playlist from your favorites?')) {
+                favorites.splice(index, 1);
+                localStorage.setItem('favorites', JSON.stringify(favorites));
+                loadFavorites();
+            }
+        }
+        
+        // Recommended Playlists
+        function loadRecommendedPlaylists() {
+            // This would typically be an API call to get personalized recommendations
+            // For demo purposes, we're creating some sample recommendations
+            const recommendedList = document.getElementById('recommendedList');
+            recommendedList.innerHTML = '';
+            
+            const sampleRecommendations = [
+                { 
+                    name: "Energy Boost", 
+                    description: "Perfect for morning workouts",
+                    url: "https://open.spotify.com/playlist/37i9dQZF1DX76Wlfdnj7AP"
+                },
+                { 
+                    name: "Peaceful Mind", 
+                    description: "Calm your thoughts with these ambient tracks",
+                    url: "https://open.spotify.com/playlist/37i9dQZF1DWZqd5JICZI0u"
+                },
+                { 
+                    name: "Focus Flow", 
+                    description: "Enhance your concentration",
+                    url: "https://open.spotify.com/playlist/37i9dQZF1DX8NTLI2TtZa6"
+                },
+                { 
+                    name: "Mood Lifter", 
+                    description: "Positive vibes to improve your day",
+                    url: "https://open.spotify.com/playlist/37i9dQZF1DX3rxVfibe1L0"
+                }
+            ];
+            
+            sampleRecommendations.forEach(playlist => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-pink-300 transition-colors';
+                card.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="h-12 w-12 rounded-full gradient-primary flex items-center justify-center mr-4">
+                            <i class="fas fa-music text-white"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-gray-800">${playlist.name}</h4>
+                            <p class="text-gray-600 text-sm mb-2">${playlist.description}</p>
+                            <div class="flex justify-between items-center">
+                                <a href="${playlist.url}" target="_blank" class="text-pink-500 hover:text-pink-600 text-sm font-medium">
+                                    Open in Spotify
+                                </a>
+                                <button onclick="saveToFavorites('${playlist.url}', '${playlist.name}')" 
+                                        class="text-gray-400 hover:text-pink-500 transition-colors">
+                                    <i class="far fa-heart"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                recommendedList.appendChild(card);
+            });
+        }
+        
+        // Mood-Specific Playlists
+        function showMoodPlaylists(mood) {
+            document.getElementById('moodContent').classList.add('hidden');
+            document.getElementById('moodPlaylistsSection').classList.remove('hidden');
+            document.getElementById('moodTitle').querySelector('span').textContent = mood;
+            
+            const moodPlaylistsList = document.getElementById('moodPlaylistsList');
+            moodPlaylistsList.innerHTML = '';
+            
+            // Sample playlists for each mood
+            const moodPlaylists = {
+                'Happy': [
+                    { name: "Good Vibes", url: "https://open.spotify.com/playlist/37i9dQZF1DX3rxVfibe1L0" },
+                    { name: "Feel-Good Indie", url: "https://open.spotify.com/playlist/37i9dQZF1DX2sUQwD7tbmL" },
+                    { name: "Happy Hits", url: "https://open.spotify.com/playlist/37i9dQZF1DXdPec7aLTmlC" }
+                ],
+                'Calm': [
+                    { name: "Peaceful Piano", url: "https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO" },
+                    { name: "Deep Focus", url: "https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ" },
+                    { name: "Sleep", url: "https://open.spotify.com/playlist/37i9dQZF1DWZd79rJ6a7lp" }
+                ],
+                'Sad': [
+                    { name: "Life Sucks", url: "https://open.spotify.com/playlist/37i9dQZF1DX3YSRoSdA634" },
+                    { name: "Comfort Zone", url: "https://open.spotify.com/playlist/37i9dQZF1DWSiZVO2J6WeI" },
+                    { name: "Sad Hours", url: "https://open.spotify.com/playlist/37i9dQZF1DX7qK8ma5wgG1" }
+                ],
+                'Energetic': [
+                    { name: "Workout", url: "https://open.spotify.com/playlist/37i9dQZF1DX76Wlfdnj7AP" },
+                    { name: "Power Workout", url: "https://open.spotify.com/playlist/37i9dQZF1DX5OUjSS1OMgV" },
+                    { name: "Beast Mode", url: "https://open.spotify.com/playlist/37i9dQZF1DX76t638V6CA8" }
+                ]
+            };
+            
+            const playlists = moodPlaylists[mood] || [];
+            
+            playlists.forEach(playlist => {
+                const card = document.createElement('div');
+                card.className = 'card-hover bg-white rounded-xl shadow-lg overflow-hidden';
+                card.innerHTML = `
+                    <div class="relative">
+                        <div class="aspect-w-16 aspect-h-9 gradient-${mood === 'Happy' ? 'success' : mood === 'Calm' ? 'secondary' : mood === 'Energetic' ? 'primary' : ''}"></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <i class="fas fa-${mood === 'Happy' ? 'smile' : mood === 'Calm' ? 'cloud' : mood === 'Sad' ? 'cloud-rain' : 'bolt'} text-white text-4xl"></i>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h4 class="text-xl font-semibold text-gray-800 mb-4">${playlist.name}</h4>
+                        <div class="flex justify-between items-center">
+                            <a href="${playlist.url}" target="_blank" 
+                               class="gradient-primary text-white px-6 py-2 rounded-full hover:opacity-90 transition-opacity inline-flex items-center">
+                                <i class="fab fa-spotify mr-2"></i>
+                                Play on Spotify
+                            </a>
+                            <button onclick="saveToFavorites('${playlist.url}', '${playlist.name}')" 
+                                    class="text-gray-400 hover:text-pink-500 transition-colors">
+                                <i class="far fa-heart text-xl"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                moodPlaylistsList.appendChild(card);
+            });
+        }
+        
+        function backToMoods() {
+            document.getElementById('moodContent').classList.remove('hidden');
+            document.getElementById('moodPlaylistsSection').classList.add('hidden');
+        }
+        
+        // Add to Favorites
+        function saveToFavorites(playlistUrl, playlistName) {
+            const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+            const newFavorite = { url: playlistUrl, name: playlistName };
+            
+            // Check if already in favorites
+            const exists = favorites.some(fav => fav.url === playlistUrl);
+            
+            if (!exists) {
+                favorites.push(newFavorite);
+                localStorage.setItem('favorites', JSON.stringify(favorites));
+                alert('Playlist added to favorites!');
+                
+                // If on favorites tab, reload the list
+                if (!document.getElementById('favoritesContent').classList.contains('hidden')) {
+                    loadFavorites();
+                }
+            } else {
+                alert('This playlist is already in your favorites!');
+            }
+        }
+    </script>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h4 class="text-xl font-bold mb-4">MoodLift</h4>
+                    <p class="text-gray-400">Your companion for emotional wellness and musical therapy.</p>
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="index.html" class="text-gray-400 hover:text-white transition-colors">Home</a></li>
+                        <li><a href="record.html" class="text-gray-400 hover:text-white transition-colors">Record</a></li>
+                        <li><a href="playlists.html" class="text-gray-400 hover:text-white transition-colors">Playlists</a></li>
+                        <li><a href="journal.html" class="text-gray-400 hover:text-white transition-colors">Journal</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold mb-4">Connect With Us</h4>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-twitter text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-instagram text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-facebook text-2xl"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 MoodLift. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

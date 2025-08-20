@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MoodLift - Record Your Voice</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        .gradient-primary { background: linear-gradient(135deg, #FF9D6C 0%, #FF6B6B 100%); }
+        .gradient-secondary { background: linear-gradient(135deg, #6B8DE3 0%, #7C5CEF 100%); }
+        .gradient-happy { background: linear-gradient(135deg, #FEF08A 0%, #FDE047 100%); }
+        .gradient-sad { background: linear-gradient(135deg, #93C5FD 0%, #60A5FA 100%); }
+        .gradient-angry { background: linear-gradient(135deg, #FCA5A5 0%, #F87171 100%); }
+        .gradient-neutral { background: linear-gradient(135deg, #D1D5DB 0%, #9CA3AF 100%); }
+        .gradient-calm { background: linear-gradient(135deg, #A7F3D0 0%, #6EE7B7 100%); }
+        .gradient-fearful { background: linear-gradient(135deg, #DDD6FE 0%, #C4B5FD 100%); }
+        .gradient-disgust { background: linear-gradient(135deg, #FED7AA 0%, #FDBA74 100%); }
+        .gradient-surprised { background: linear-gradient(135deg, #FDE68A 0%, #FCD34D 100%); }
+        
+        .pulse-animation { animation: pulse 1.5s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } }
+        
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); }
+        
+        .notification {
+            position: fixed; top: 100px; right: 20px; padding: 16px 24px; border-radius: 8px;
+            color: white; font-weight: 500; z-index: 1000; transform: translateX(400px);
+            transition: transform 0.3s ease; max-width: 400px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .notification.show { transform: translateX(0); }
+        .notification.success { background: linear-gradient(135deg, #10B981 0%, #059669 100%); }
+        .notification.error { background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); }
+        .notification.warning { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); }
+        .notification.info { background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); }
+        
+        .processing-spinner {
+            width: 20px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white; border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Debug console styles */
+        .debug-console {
+            position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0, 0, 0, 0.9);
+            color: #00ff00; font-family: monospace; font-size: 12px; padding: 10px;
+            max-height: 200px; overflow-y: auto; z-index: 9999; display: none;
+        }
+        .debug-console.show { display: block; }
+        .debug-toggle {
+            position: fixed; bottom: 10px; left: 10px; background: #333; color: white;
+            padding: 5px 10px; border-radius: 5px; cursor: pointer; z-index: 10000;
+            font-size: 12px;
+        }
+        
+        .redirect-message {
+            animation: fadeInUp 0.5s ease-out;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Debug Toggle -->
+<div class="debug-toggle" onclick="toggleDebug()">Debug Console</div>
+
+<!-- Debug Console -->
+<div id="debugConsole" class="debug-console">
+    <div style="color: #ffff00; margin-bottom: 10px;">🐛 Debug Console - Click to toggle</div>
+    <div id="debugOutput"></div>
+</div>
+
+<!-- Header -->
+<nav class="bg-white shadow fixed w-full z-50">
+    <div class="container mx-auto px-6 py-3 flex justify-between items-center">
+        <span class="text-2xl font-bold text-gray-800">Mood<span class="text-pink-500">Lift</span></span>
+        <div class="hidden md:flex space-x-8">
+            <a href="#" class="text-gray-600 hover:text-pink-500">Home</a>
+            <a href="#" class="text-pink-500 font-semibold">Record</a>
+            <a href="predict.html" class="text-gray-600 hover:text-pink-500">Predictions</a>
+            <a href="#" class="text-gray-600 hover:text-pink-500">Playlists</a>
+            <a href="#" class="text-gray-600 hover:text-pink-500">Journal</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Section -->
+<div class="pt-32 pb-12">
+    <div class="container mx-auto px-6 max-w-3xl">
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">Let's Hear Your Voice</h1>
+            <p class="text-xl text-gray-600">Record a short sample to analyze your emotional state</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg p-8 mb-12 text-center">
+            <div id="recordingIndicator" class="w-24 h-24 gradient-secondary rounded-full mx-auto mb-6 hidden pulse-animation flex items-center justify-center">
+                <i class="fas fa-microphone text-white text-3xl"></i>
+            </div>
+            <p id="recordingStatus" class="text-gray-600 mb-6">Click to start recording your voice</p>
+            <button id="recordButton" class="gradient-primary text-white px-8 py-4 rounded-full hover:opacity-90">
+                <span class="button-text">Start Recording</span>
+            </button>
+        </div>
+
+        <!-- Processing/Redirect Message -->
+        <div id="redirectMessage" class="hidden">
+            <div class="bg-white rounded-2xl shadow-lg p-8 text-center redirect-message">
+                <div class="w-16 h-16 gradient-secondary rounded-full mx-auto mb-6 pulse-animation flex items-center justify-center">
+                    <i class="fas fa-brain text-white text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Analysis Complete!</h2>
+                <p class="text-gray-600 mb-6">Redirecting you to your emotion predictions...</p>
+                <div class="w-64 h-2 bg-gray-200 rounded-full mx-auto overflow-hidden">
+                    <div class="h-full gradient-primary rounded-full animate-pulse" style="width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let mediaRecorder, audioChunks = [], isRecording = false, stream = null;
+let debugMode = false;
+
+// Debug system
+const debugLog = (message, type = 'info') => {
+    const timestamp = new Date().toLocaleTimeString();
+    const colors = {
+        info: '#00ff00',
+        warn: '#ffff00', 
+        error: '#ff0000',
+        success: '#00ffff'
+    };
+    
+    const debugOutput = document.getElementById('debugOutput');
+    if (debugOutput) {
+        debugOutput.innerHTML += `<div style="color: ${colors[type]};">[${timestamp}] ${message}</div>`;
+        debugOutput.scrollTop = debugOutput.scrollHeight;
+    }
+    
+    // Always log to console
+    console.log(`[${timestamp}] ${message}`);
+};
+
+const toggleDebug = () => {
+    debugMode = !debugMode;
+    const console = document.getElementById('debugConsole');
+    if (debugMode) {
+        console.classList.add('show');
+        debugLog('Debug mode enabled', 'success');
+    } else {
+        console.classList.remove('show');
+    }
+};
+
+// Enhanced notification system
+const showNotification = (message, type = 'info', duration = 5000) => {
+    debugLog(`Notification: ${message} (${type})`, type === 'error' ? 'error' : 'info');
+    
+    // Remove existing notifications
+    document.querySelectorAll('.notification').forEach(n => n.remove());
+    
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    const icons = { success: 'check-circle', error: 'exclamation-circle', warning: 'exclamation-triangle', info: 'info-circle' };
+    notification.innerHTML = `<i class="fas fa-${icons[type]}"></i> ${message}`;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => notification.classList.add('show'), 100);
+    
+    // Auto-remove success/info notifications, keep errors visible longer
+    if (type !== 'error') {
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, duration);
+    } else {
+        // For errors, add a close button
+        notification.innerHTML += `<button onclick="this.parentElement.remove()" style="margin-left: 10px; background: rgba(255,255,255,0.2); border: none; color: white; padding: 2px 6px; border-radius: 3px; cursor: pointer;">×</button>`;
+    }
+};
+
+// Loading state management
+const setLoadingState = (loading) => {
+    const btn = document.getElementById('recordButton');
+    const text = btn.querySelector('.button-text');
+    const status = document.getElementById('recordingStatus');
+    
+    btn.disabled = loading;
+    btn.className = `px-8 py-4 rounded-full text-white ${loading ? 'bg-gray-400' : 'gradient-primary hover:opacity-90'}`;
+    
+    if (loading) {
+        text.innerHTML = '<div class="flex items-center gap-2"><div class="processing-spinner"></div>Processing...</div>';
+        status.textContent = 'Processing your audio...';
+        debugLog('Set loading state: ON', 'info');
+    } else {
+        text.textContent = 'Start Recording';
+        status.textContent = 'Click to start recording your voice';
+        debugLog('Set loading state: OFF', 'info');
+    }
+};
+
+// Reset recording state
+const resetState = () => {
+    isRecording = false;
+    const indicator = document.getElementById('recordingIndicator');
+    const btn = document.getElementById('recordButton');
+    const status = document.getElementById('recordingStatus');
+    
+    if (indicator) indicator.classList.add('hidden');
+    if (btn) {
+        btn.querySelector('.button-text').textContent = 'Start Recording';
+        btn.className = 'gradient-primary text-white px-8 py-4 rounded-full hover:opacity-90';
+        btn.disabled = false;
+    }
+    if (status) status.textContent = 'Click to start recording your voice';
+    
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    
+    debugLog('Recording state reset', 'info');
+};
+
+// Enhanced server communication with timeout and retry
+const sendToServer = async (audioBlob, retryCount = 0) => {
+    const maxRetries = 2;
+    const timeout = 30000; // 30 seconds
+    
+    debugLog(`Sending to server (attempt ${retryCount + 1}/${maxRetries + 1})`, 'info');
+    debugLog(`Audio blob size: ${audioBlob.size} bytes`, 'info');
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+        controller.abort();
+        debugLog('Request timed out after 30 seconds', 'error');
+    }, timeout);
+    
+    try {
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'recording.webm');
+        
+        debugLog('Making fetch request to http://127.0.0.1:5000/predict', 'info');
+        
+        const response = await fetch("http://127.0.0.1:5000/predict", {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal,
+            headers: {
+                // Let browser set Content-Type with boundary
+            }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        debugLog(`Response received: ${response.status} ${response.statusText}`, 'info');
+        debugLog(`Response headers: ${JSON.stringify(Array.from(response.headers.entries()))}`, 'info');
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            debugLog(`Server error response: ${errorText}`, 'error');
+            throw new Error(`Server error: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        debugLog(`Server response: ${JSON.stringify(data)}`, 'success');
+        
+        return data;
+        
+    } catch (error) {
+        clearTimeout(timeoutId);
+        debugLog(`Request failed: ${error.message}`, 'error');
+        
+        if (error.name === 'AbortError') {
+            throw new Error('Request timed out. Please check your internet connection.');
+        }
+        
+        if (error.message.includes('fetch')) {
+            if (retryCount < maxRetries) {
+                debugLog(`Retrying request in 2 seconds...`, 'warn');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                return sendToServer(audioBlob, retryCount + 1);
+            } else {
+                throw new Error('Cannot connect to server. Please check if the server is running on http://127.0.0.1:5000');
+            }
+        }
+        
+        throw error;
+    }
+};
+
+// Redirect to predict.html with data
+const redirectToPredictions = (data) => {
+    debugLog('=== REDIRECTING TO PREDICTIONS ===', 'info');
+    debugLog(`Data to pass: ${JSON.stringify(data)}`, 'info');
+    
+    try {
+        // Show redirect message
+        document.getElementById('redirectMessage').classList.remove('hidden');
+        
+        // Store data in sessionStorage as backup
+        sessionStorage.setItem('emotionAnalysisData', JSON.stringify(data));
+        debugLog('Data stored in sessionStorage', 'info');
+        
+        // Prepare URL with data
+        const encodedData = encodeURIComponent(JSON.stringify(data));
+        const redirectUrl = `predict.html?data=${encodedData}`;
+        
+        debugLog(`Redirect URL: ${redirectUrl}`, 'info');
+        
+        // Redirect after showing message
+        setTimeout(() => {
+            debugLog('Executing redirect...', 'info');
+            window.location.href = redirectUrl;
+        }, 2000);
+        
+    } catch (error) {
+        debugLog(`Redirect error: ${error.message}`, 'error');
+        showNotification('Error preparing results. Please try again.', 'error');
+        resetState();
+        setLoadingState(false);
+    }
+};
+
+// Record button handler
+document.getElementById('recordButton').addEventListener('click', async () => {
+    debugLog('Record button clicked', 'info');
+    
+    const btn = document.getElementById('recordButton');
+    const status = document.getElementById('recordingStatus');
+    const indicator = document.getElementById('recordingIndicator');
+
+    if (!isRecording) {
+        debugLog('Starting recording...', 'info');
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: { 
+                    sampleRate: 16000, 
+                    channelCount: 1, 
+                    echoCancellation: true, 
+                    noiseSuppression: true 
+                }
+            });
+            
+            debugLog('Microphone access granted', 'success');
+            
+            const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+            let selectedType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || 'audio/webm';
+            debugLog(`Using MIME type: ${selectedType}`, 'info');
+            
+            mediaRecorder = new MediaRecorder(stream, { mimeType: selectedType });
+            audioChunks = [];
+            
+            mediaRecorder.ondataavailable = e => {
+                debugLog(`Data available, size: ${e.data.size}`, 'info');
+                if (e.data.size > 0) audioChunks.push(e.data);
+            };
+            
+            mediaRecorder.onstop = () => {
+                debugLog('MediaRecorder stopped, processing audio...', 'info');
+                processAudio();
+            };
+
+            mediaRecorder.onerror = (e) => {
+                debugLog(`MediaRecorder error: ${e.error}`, 'error');
+                showNotification('Recording error occurred', 'error');
+                resetState();
+            };
+
+            mediaRecorder.start(1000);
+            isRecording = true;
+            
+            indicator.classList.remove('hidden');
+            btn.querySelector('.button-text').textContent = 'Stop Recording';
+            btn.className = 'gradient-secondary text-white px-8 py-4 rounded-full hover:opacity-90';
+            status.textContent = 'Recording... Click stop when finished';
+            
+        } catch (err) {
+            debugLog(`Recording error: ${err.message}`, 'error');
+            showNotification('Microphone access denied. Please allow microphone access.', 'error');
+            resetState();
+        }
+    } else {
+        debugLog('Stopping recording...', 'info');
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+        }
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+        isRecording = false;
+        indicator.classList.add('hidden');
+        setLoadingState(true);
+    }
+});
+
+// Enhanced audio processing with redirect
+const processAudio = async () => {
+    debugLog('=== PROCESSING AUDIO ===', 'info');
+    debugLog(`Audio chunks: ${audioChunks.length}`, 'info');
+    
+    if (audioChunks.length === 0) {
+        debugLog('No audio chunks available', 'error');
+        showNotification('No audio recorded. Please try again.', 'error');
+        resetState();
+        return;
+    }
+
+    try {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        debugLog(`Audio blob created, size: ${audioBlob.size}`, 'info');
+        
+        if (audioBlob.size === 0) {
+            debugLog('Audio blob is empty', 'error');
+            showNotification('Empty audio file. Please try recording again.', 'error');
+            resetState();
+            return;
+        }
+        
+        // Send to server with enhanced error handling
+        const data = await sendToServer(audioBlob);
+        
+        // Validate response structure
+        if (!data || typeof data !== 'object') {
+            throw new Error('Invalid response format from server');
+        }
+        
+        debugLog('Response validation passed', 'success');
+        
+        if (!data.emotions || !Array.isArray(data.emotions)) {
+            throw new Error('No emotions array in response');
+        }
+        
+        if (data.emotions.length === 0) {
+            throw new Error('Empty emotions array');
+        }
+        
+        // Validate emotion format
+        const validEmotions = data.emotions.filter(emotion => {
+            return Array.isArray(emotion) && 
+                   emotion.length === 2 && 
+                   typeof emotion[0] === 'string' && 
+                   typeof emotion[1] === 'number';
+        });
+        
+        if (validEmotions.length === 0) {
+            throw new Error('No valid emotions found in response');
+        }
+        
+        debugLog(`Valid emotions found: ${validEmotions.length}`, 'success');
+        
+        // Update data with valid emotions only
+        data.emotions = validEmotions;
+        data.timestamp = new Date().toISOString();
+        data.status = 'success';
+        
+        // Redirect to predictions page instead of displaying inline
+        showNotification('Audio processed successfully! Redirecting...', 'success');
+        redirectToPredictions(data);
+        
+    } catch (error) {
+        debugLog(`Processing error: ${error.message}`, 'error');
+        debugLog(`Error stack: ${error.stack}`, 'error');
+        showNotification(`Error: ${error.message}`, 'error');
+        setLoadingState(false);
+        resetState();
+    }
+};
+
+// Enhanced global error handling
+window.addEventListener('error', (event) => {
+    debugLog(`Global error: ${event.error?.message || event.message}`, 'error');
+    showNotification('An unexpected error occurred', 'error');
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    debugLog(`Unhandled promise rejection: ${event.reason}`, 'error');
+    showNotification('An unexpected error occurred', 'error');
+});
+
+// Initialize
+debugLog('MoodLift frontend loaded successfully', 'success');
+debugLog('Click the Debug Console button to view detailed logs', 'info');
+</script>
+
+</body>
+</html>

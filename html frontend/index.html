@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoodLift - Your Emotional Wellness Journey</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-primary {
+            background: linear-gradient(135deg, #FF9D6C 0%, #FF6B6B 100%);
+        }
+        .gradient-secondary {
+            background: linear-gradient(135deg, #6B8DE3 0%, #7C5CEF 100%);
+        }
+        .gradient-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #45B649 100%);
+        }
+        .blob-shape {
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+        }
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg fixed w-full z-50">
+        <div class="container mx-auto px-6 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <span class="text-2xl font-bold text-gray-800">Mood<span class="text-pink-500">Lift</span></span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-gray-600 hover:text-pink-500 transition-colors">Home</a>
+                    <a href="record.html" class="text-gray-600 hover:text-pink-500 transition-colors">Record</a>
+                    <a href="playlists.html" class="text-gray-600 hover:text-pink-500 transition-colors">Playlists</a>
+                    <a href="journal.html" class="text-gray-600 hover:text-pink-500 transition-colors">Journal</a>
+                </div>
+                <div id="userSection" class="hidden items-center space-x-4">
+                    <span id="userName" class="text-gray-600"></span>
+                    <button onclick="logout()" class="bg-pink-500 text-white px-4 py-2 rounded-lg hover:bg-pink-600 transition-colors">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Auth Section -->
+    <div id="authSection" class="min-h-screen flex items-center justify-center px-4">
+        <div class="max-w-4xl w-full flex rounded-2xl shadow-2xl overflow-hidden">
+            <!-- Left Side - Welcome Message -->
+            <div class="w-1/2 gradient-primary p-12 text-white hidden md:block">
+                <div class="h-full flex flex-col justify-between">
+                    <div>
+                        <h2 class="text-4xl font-bold mb-6">Welcome to MoodLift</h2>
+                        <p class="text-lg mb-8">Your personal emotional wellness companion. Start your journey to better mental health today.</p>
+                    </div>
+                    <div class="floating">
+                        <img src="/api/placeholder/400/300" alt="Wellness Illustration" class="rounded-lg">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Side - Auth Forms -->
+            <div class="w-full md:w-1/2 bg-white p-12">
+                <div class="max-w-sm mx-auto">
+                    <div class="text-center mb-8">
+                        <h3 class="text-2xl font-bold text-gray-800">Sign In to Your Account</h3>
+                        <p class="text-gray-600 mt-2">Continue your wellness journey</p>
+                    </div>
+                    
+                    <form id="authForm" class="space-y-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Username</label>
+                            <input type="text" id="username" 
+                                class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-pink-500">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2">Password</label>
+                            <input type="password" id="password" 
+                                class="w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-pink-500">
+                        </div>
+                        <button type="button" onclick="handleAuth('login')" 
+                            class="w-full gradient-primary text-white py-3 rounded-lg hover:opacity-90 transition-opacity">
+                            Sign In
+                        </button>
+                        <a href="signup.html" 
+                            class="block text-center w-full bg-gray-100 text-gray-800 py-3 rounded-lg hover:bg-gray-200 transition-colors">
+                            Create Account
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Section -->
+    <div id="mainApp" class="hidden pt-20">
+        <!-- Hero Section -->
+        <section id="home" class="container mx-auto px-6 py-12">
+            <div class="flex flex-col md:flex-row items-center justify-between">
+                <div class="md:w-1/2 mb-8 md:mb-0">
+                    <h1 class="text-4xl md:text-6xl font-bold text-gray-800 mb-6">
+                        Discover Your <span class="text-pink-500">Emotional</span> Rhythm
+                    </h1>
+                    <p class="text-xl text-gray-600 mb-8">
+                        Let your voice guide you to the perfect playlist that matches your mood and lifts your spirits.
+                    </p>
+                    <a href="record.html" class="gradient-primary text-white px-8 py-4 rounded-full inline-block hover:opacity-90 transition-opacity">
+                        Start Recording
+                    </a>
+                </div>
+                <div class="md:w-1/2 flex justify-center">
+                    <div class="blob-shape gradient-secondary w-80 h-80 floating flex items-center justify-center">
+                        <i class="fas fa-music text-white text-6xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="card-hover bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-center mb-4 h-16 w-16 rounded-full gradient-primary text-white mx-auto">
+                        <i class="fas fa-microphone text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-center mb-4">Voice Analysis</h3>
+                    <p class="text-gray-600 text-center mb-6">Record your voice and let our AI analyze your emotional state.</p>
+                    <a href="record.html" class="block text-center text-pink-500 hover:text-pink-600 font-medium">Learn More →</a>
+                </div>
+                
+                <div class="card-hover bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-center mb-4 h-16 w-16 rounded-full gradient-secondary text-white mx-auto">
+                        <i class="fas fa-headphones text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-center mb-4">Custom Playlists</h3>
+                    <p class="text-gray-600 text-center mb-6">Get personalized music recommendations based on your mood.</p>
+                    <a href="playlists.html" class="block text-center text-pink-500 hover:text-pink-600 font-medium">Learn More →</a>
+                </div>
+                
+                <div class="card-hover bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-center mb-4 h-16 w-16 rounded-full gradient-success text-white mx-auto">
+                        <i class="fas fa-book text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-center mb-4">Mood Journal</h3>
+                    <p class="text-gray-600 text-center mb-6">Track your emotional journey and see patterns over time.</p>
+                    <a href="journal.html" class="block text-center text-pink-500 hover:text-pink-600 font-medium">Learn More →</a>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Auth Handling
+        async function handleAuth(type) {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`http://127.0.0.1:5000/${type}`, {
+
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem("token", data.token);
+                    localStorage.setItem("username", username);
+                    document.getElementById('authSection').classList.add('hidden');
+                    document.getElementById('mainApp').classList.remove('hidden');
+                    document.getElementById('userSection').classList.remove('hidden');
+                    document.getElementById('userName').textContent = username;
+                } else {
+                    alert(data.error);
+                }
+            } catch (error) {
+                alert('Authentication failed');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem("token");
+            localStorage.removeItem("username");
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('userSection').classList.add('hidden');
+        }
+        
+        // Check if user is already logged in
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem("token");
+            const username = localStorage.getItem("username");
+            
+            if (token && username) {
+                document.getElementById('authSection').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                document.getElementById('userSection').classList.remove('hidden');
+                document.getElementById('userName').textContent = username;
+            }
+        });
+    </script>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h4 class="text-xl font-bold mb-4">MoodLift</h4>
+                    <p class="text-gray-400">Your companion for emotional wellness and musical therapy.</p>
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="index.html" class="text-gray-400 hover:text-white transition-colors">Home</a></li>
+                        <li><a href="record.html" class="text-gray-400 hover:text-white transition-colors">Record</a></li>
+                        <li><a href="playlists.html" class="text-gray-400 hover:text-white transition-colors">Playlists</a></li>
+                        <li><a href="journal.html" class="text-gray-400 hover:text-white transition-colors">Journal</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold mb-4">Connect With Us</h4>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-twitter text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-instagram text-2xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-facebook text-2xl"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 MoodLift. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

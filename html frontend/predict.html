@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MoodLift - Your Emotion Analysis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+        .gradient-primary { background: linear-gradient(135deg, #FF9D6C 0%, #FF6B6B 100%); }
+        .gradient-secondary { background: linear-gradient(135deg, #6B8DE3 0%, #7C5CEF 100%); }
+        .gradient-happy { background: linear-gradient(135deg, #FEF08A 0%, #FDE047 100%); }
+        .gradient-sad { background: linear-gradient(135deg, #93C5FD 0%, #60A5FA 100%); }
+        .gradient-angry { background: linear-gradient(135deg, #FCA5A5 0%, #F87171 100%); }
+        .gradient-neutral { background: linear-gradient(135deg, #D1D5DB 0%, #9CA3AF 100%); }
+        .gradient-calm { background: linear-gradient(135deg, #A7F3D0 0%, #6EE7B7 100%); }
+        .gradient-fearful { background: linear-gradient(135deg, #DDD6FE 0%, #C4B5FD 100%); }
+        .gradient-disgust { background: linear-gradient(135deg, #FED7AA 0%, #FDBA74 100%); }
+        .gradient-surprised { background: linear-gradient(135deg, #FDE68A 0%, #FCD34D 100%); }
+        
+        .emotion-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .emotion-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .pulse-animation { 
+            animation: pulse 2s ease-in-out infinite; 
+        }
+        @keyframes pulse { 
+            0%, 100% { transform: scale(1); opacity: 1; } 
+            50% { transform: scale(1.05); opacity: 0.9; } 
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.6s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .loading-dots {
+            display: inline-block;
+        }
+        .loading-dots:after {
+            content: '';
+            animation: dots 2s linear infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+        
+        .spotify-btn {
+            background: #1DB954;
+            transition: all 0.3s ease;
+        }
+        .spotify-btn:hover {
+            background: #1ed760;
+            transform: scale(1.05);
+        }
+        
+        .emotion-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .result-container {
+            min-height: 60vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .error-container {
+            background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+            border: 2px solid #F87171;
+        }
+        
+        .success-container {
+            background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+        }
+
+        /* FIXED: Make sure hidden elements are completely hidden */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Header -->
+<nav class="bg-white shadow fixed w-full z-50">
+    <div class="container mx-auto px-6 py-3 flex justify-between items-center">
+        <span class="text-2xl font-bold text-gray-800">Mood<span class="text-pink-500">Lift</span></span>
+        <div class="hidden md:flex space-x-8">
+            <a href="index.html" class="text-gray-600 hover:text-pink-500">Home</a>
+            <a href="record.html" class="text-gray-600 hover:text-pink-500">Record</a>
+            <a href="#" class="text-pink-500 font-semibold">Predictions</a>
+            <a href="#" class="text-gray-600 hover:text-pink-500">Playlists</a>
+            <a href="#" class="text-gray-600 hover:text-pink-500">Journal</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<div class="pt-32 pb-12">
+    <div class="container mx-auto px-6 max-w-6xl">
+        
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center result-container">
+            <div class="bg-white rounded-2xl shadow-lg p-12 fade-in">
+                <div class="w-20 h-20 gradient-secondary rounded-full mx-auto mb-6 pulse-animation flex items-center justify-center">
+                    <i class="fas fa-brain text-white text-3xl"></i>
+                </div>
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Analyzing Your Voice</h2>
+                <p class="text-xl text-gray-600 mb-4">Processing your emotional patterns<span class="loading-dots"></span></p>
+                <div class="w-64 h-2 bg-gray-200 rounded-full mx-auto overflow-hidden">
+                    <div class="h-full gradient-primary rounded-full animate-pulse" style="width: 80%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden text-center result-container">
+            <div class="error-container rounded-2xl shadow-lg p-12 fade-in">
+                <div class="w-20 h-20 bg-red-500 rounded-full mx-auto mb-6 flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-white text-3xl"></i>
+                </div>
+                <h2 class="text-3xl font-bold text-red-800 mb-4">Oops! Something went wrong</h2>
+                <p id="errorMessage" class="text-xl text-red-700 mb-6">Unable to analyze your voice recording.</p>
+                <button onclick="window.location.href='record.html'" class="gradient-primary text-white px-8 py-4 rounded-full hover:opacity-90 transition-all">
+                    <i class="fas fa-microphone mr-2"></i>Try Recording Again
+                </button>
+            </div>
+        </div>
+
+        <!-- Success State -->
+        <div id="successState" class="hidden">
+            <!-- Header Section -->
+            <div class="text-center mb-12 fade-in">
+                <h1 class="text-4xl font-bold text-gray-800 mb-4">Your Voice Analysis Results</h1>
+                <p class="text-xl text-gray-600">Here's what we detected from your voice</p>
+            </div>
+
+            <!-- Primary Emotion Card -->
+            <div id="primaryEmotion" class="mb-12 fade-in">
+                <!-- Will be populated by JavaScript -->
+            </div>
+
+            <!-- Other Emotions -->
+            <div id="otherEmotions" class="mb-12">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center slide-in">Other Detected Emotions</h2>
+                <div id="emotionsList" class="grid md:grid-cols-2 gap-6">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Spotify Playlist Section -->
+            <div id="playlistSection" class="mb-12 slide-in">
+                <div class="bg-white rounded-2xl shadow-lg p-8 text-center">
+                    <div class="w-16 h-16 spotify-btn rounded-full mx-auto mb-6 flex items-center justify-center">
+                        <i class="fab fa-spotify text-white text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Perfect Playlist for Your Mood</h2>
+                    <p id="playlistDescription" class="text-gray-600 mb-6">We've selected a playlist that matches your current emotional state</p>
+                    <div id="playlistDetails" class="mb-6">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    <a id="spotifyLink" href="#" target="_blank" class="spotify-btn text-white px-8 py-4 rounded-full hover:opacity-90 transition-all inline-block">
+                        <i class="fab fa-spotify mr-2"></i>Open in Spotify
+                    </a>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="text-center space-y-4 slide-in">
+                <button onclick="window.location.href='record.html'" class="gradient-primary text-white px-8 py-4 rounded-full hover:opacity-90 transition-all mr-4">
+                    <i class="fas fa-microphone mr-2"></i>Record Another
+                </button>
+                <button onclick="window.location.href='index.html'" class="gradient-secondary text-white px-8 py-4 rounded-full hover:opacity-90 transition-all">
+                    <i class="fas fa-home mr-2"></i>Back to Home
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Emotion configurations
+const emotionConfig = {
+    happy: {
+        gradient: 'gradient-happy',
+        icon: 'fas fa-smile',
+        color: 'text-yellow-600',
+        description: 'You sound joyful and positive!'
+    },
+    sad: {
+        gradient: 'gradient-sad',
+        icon: 'fas fa-sad-tear',
+        color: 'text-blue-600',
+        description: 'You seem to be feeling down.'
+    },
+    angry: {
+        gradient: 'gradient-angry',
+        icon: 'fas fa-angry',
+        color: 'text-red-600',
+        description: 'There\'s some frustration in your voice.'
+    },
+    neutral: {
+        gradient: 'gradient-neutral',
+        icon: 'fas fa-meh',
+        color: 'text-gray-600',
+        description: 'You sound calm and balanced.'
+    },
+    calm: {
+        gradient: 'gradient-calm',
+        icon: 'fas fa-leaf',
+        color: 'text-green-600',
+        description: 'Your voice radiates tranquility.'
+    },
+    fearful: {
+        gradient: 'gradient-fearful',
+        icon: 'fas fa-scared',
+        color: 'text-purple-600',
+        description: 'We detect some anxiety in your tone.'
+    },
+    disgust: {
+        gradient: 'gradient-disgust',
+        icon: 'fas fa-grimace',
+        color: 'text-orange-600',
+        description: 'You sound displeased about something.'
+    },
+    surprised: {
+        gradient: 'gradient-surprised',
+        icon: 'fas fa-surprise',
+        color: 'text-yellow-500',
+        description: 'There\'s excitement and surprise in your voice!'
+    }
+};
+
+// Get data from URL or sessionStorage
+function getAnalysisData() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlData = urlParams.get('data');
+    
+    if (urlData) {
+        try {
+            return JSON.parse(decodeURIComponent(urlData));
+        } catch (e) {
+            console.error('Error parsing URL data:', e);
+        }
+    }
+    
+    // Fallback to sessionStorage
+    const sessionData = sessionStorage.getItem('emotionAnalysisData');
+    if (sessionData) {
+        try {
+            return JSON.parse(sessionData);
+        } catch (e) {
+            console.error('Error parsing session data:', e);
+        }
+    }
+    
+    return null;
+}
+
+// Create emotion card
+function createEmotionCard(emotion, isPrimary = false) {
+    const [emotionName] = emotion; // Only get emotion name, ignore confidence
+    const config = emotionConfig[emotionName] || emotionConfig.neutral;
+    
+    const cardSize = isPrimary ? 'p-12' : 'p-6';
+    const iconSize = isPrimary ? 'text-5xl' : 'text-3xl';
+    const titleSize = isPrimary ? 'text-3xl' : 'text-xl';
+    
+    return `
+        <div class="bg-white rounded-2xl shadow-lg ${cardSize} text-center emotion-card ${config.gradient}">
+            <div class="emotion-icon ${config.color}">
+                <i class="${config.icon} ${iconSize}"></i>
+            </div>
+            <h3 class="font-bold ${config.color} mb-3 ${titleSize} capitalize">${emotionName}</h3>
+            ${isPrimary ? `<p class="text-gray-700 text-lg">${config.description}</p>` : ''}
+        </div>
+    `;
+}
+
+// Fetch playlist from backend
+async function fetchPlaylist(emotion) {
+    try {
+        const response = await fetch(`http://127.0.0.1:5000/playlist/${emotion}`);
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (error) {
+        console.error('Error fetching playlist:', error);
+    }
+    
+    // Fallback playlists (matching your backend)
+    const fallbackPlaylists = {
+        happy: { name: "Feel-Good Hits", url: "https://open.spotify.com/playlist/37i9dQZF1DXdPec7aLTmlC" },
+        sad: { name: "Sad Vibes", url: "https://open.spotify.com/playlist/37i9dQZF1DX7qK8ma5wgG1" },
+        neutral: { name: "Lo-Fi Chill", url: "https://open.spotify.com/playlist/37i9dQZF1DWSf2RDTDayIx" },
+        angry: { name: "Chill Hits", url: "https://open.spotify.com/playlist/37i9dQZF1DX4WYpdgoIcn6" },
+        surprised: { name: "Viral Hits", url: "https://open.spotify.com/playlist/37i9dQZF1DXcZDD7cfEKhW" },
+        fearful: { name: "Confidence Boost", url: "https://open.spotify.com/playlist/37i9dQZF1DX4fpCWaHOned" },
+        disgust: { name: "Mood Booster", url: "https://open.spotify.com/playlist/37i9dQZF1DX3rxVfibe1L0" },
+        calm: { name: "Relaxation", url: "https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO" }
+    };
+    
+    return fallbackPlaylists[emotion] || fallbackPlaylists.neutral;
+}
+
+// FIXED: Display results function with proper state management
+async function displayResults(data) {
+    console.log('Displaying results with data:', data);
+    
+    if (!data || !data.emotions || data.emotions.length === 0) {
+        showError('No emotion data available');
+        return;
+    }
+
+    // Get primary emotion (first in array)
+    const primaryEmotion = data.emotions[0];
+    const otherEmotions = data.emotions.slice(1);
+    
+    console.log('Primary emotion:', primaryEmotion);
+    console.log('Other emotions:', otherEmotions);
+    
+    // Create primary emotion card
+    document.getElementById('primaryEmotion').innerHTML = `
+        <div class="text-center">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Primary Emotion Detected</h2>
+            ${createEmotionCard(primaryEmotion, true)}
+        </div>
+    `;
+    
+    // Create other emotion cards
+    if (otherEmotions.length > 0) {
+        const emotionCards = otherEmotions.map(emotion => createEmotionCard(emotion)).join('');
+        document.getElementById('emotionsList').innerHTML = emotionCards;
+    } else {
+        document.getElementById('otherEmotions').style.display = 'none';
+    }
+    
+    // Fetch and display playlist
+    const playlist = await fetchPlaylist(primaryEmotion[0]);
+    if (playlist) {
+        document.getElementById('playlistDetails').innerHTML = `
+            <h3 class="text-xl font-semibold text-gray-800 mb-2">${playlist.name}</h3>
+            <p class="text-gray-600">Curated for your ${primaryEmotion[0]} mood</p>
+        `;
+        document.getElementById('spotifyLink').href = playlist.url;
+    }
+    
+    // FIXED: Properly hide loading state and show success state
+    console.log('Hiding loading state and showing results');
+    document.getElementById('loadingState').classList.add('hidden');
+    document.getElementById('errorState').classList.add('hidden');
+    document.getElementById('successState').classList.remove('hidden');
+}
+
+// FIXED: Show error state function
+function showError(message) {
+    console.log('Showing error:', message);
+    document.getElementById('errorMessage').textContent = message;
+    document.getElementById('loadingState').classList.add('hidden');
+    document.getElementById('successState').classList.add('hidden');
+    document.getElementById('errorState').classList.remove('hidden');
+}
+
+// FIXED: Initialize page function with better logic
+async function initializePage() {
+    console.log('Initializing prediction page...');
+    
+    // Check if we have data immediately
+    const data = getAnalysisData();
+    
+    if (data) {
+        console.log('Analysis data found, processing...');
+        // Add small delay for better UX, but shorter since we have data
+        await new Promise(resolve => setTimeout(resolve, 800));
+        await displayResults(data);
+    } else {
+        console.log('No analysis data found');
+        // Show loading a bit longer before showing error
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        showError('No analysis data found. Please record your voice first.');
+    }
+}
+
+// Start initialization when page loads
+document.addEventListener('DOMContentLoaded', initializePage);
+
+// Clear data when leaving page (for privacy)
+window.addEventListener('beforeunload', () => {
+    sessionStorage.removeItem('emotionAnalysisData');
+});
+
+// FIXED: Add debugging to check if elements exist
+console.log('Loading state element:', document.getElementById('loadingState'));
+console.log('Error state element:', document.getElementById('errorState'));
+console.log('Success state element:', document.getElementById('successState'));
+</script>
+
+</body>
+</html>
